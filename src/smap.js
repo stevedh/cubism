@@ -3,7 +3,7 @@ cubism_contextPrototype.smap = function(host) {
   var source = {}, context = this;
   var summary = 'mean'
 
-  source.metric  = function(uuid, name) {
+  source.metric = function(uuid, name) {
     if (name == undefined) {
       name = uuid;
     }
@@ -26,17 +26,39 @@ cubism_contextPrototype.smap = function(host) {
   };
 
   source.find = function(expression, callback) {
-    console.log(expression)
     d3.json(host + '/api/query')
       .post("select * where " + expression, 
             function(error, d) {
                callback(error, d);
             });
+  };
 
-  source.metrics = function(expression, callback, label) {
-    
+  function label(stream, label_) {
+    var pieces = label_.split('/');
+    var _stream = stream;
 
+    for (var i = 0; i < pieces.length; i++) {
+      _stream = _stream[pieces[i]];
+    } 
+    return _stream;
   }
+
+  source.metrics = function () {
+    var _instance = this;
+    if (arguments.length == 2) {
+      var q = arguments[0], l = 'uuid', callback = arguments[1];
+    } else {
+      var q = arguments[0], l = arguments[1], callback = arguments[2];
+    }
+    this.find(q, function (error, streams) {
+      var metrics = [];
+      for (i = 0; i < streams.length; i++) {
+        metrics.push(_instance.metric(streams[i]['uuid'],
+                                      label(streams[i], l)));
+      }
+      callback(error, metrics);
+    });
+  };
 
   source.toString = function() {
     return host;
